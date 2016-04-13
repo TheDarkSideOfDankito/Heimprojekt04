@@ -1,11 +1,11 @@
 //
-// Created by ganymed on 06/04/16.
+// Actually i wanted to make this 'class' as generically as possible, but being able to set each possible Pin
+// for a Pin Change Interrupt would require storing 23 Configs, one for each Pin.
+// This would use up a lot of ATMega's SDRAM, which i'd like to avoid.
+// So currently it's only possible to configure one Pin of Register B, C and D each for Pin Change Interrupt.
 //
 
-#include <Arduino.h>
 #include "interrupts.h"
-#include "util.h"
-#include "pinMappings.h"
 
 
 #define DebounceDelay 50
@@ -16,20 +16,16 @@ uint8_t countEnabledInterrupts = 0;
 void (*externalInterrupt0ISR)(void) = NULL;
 void (*externalInterrupt1ISR)(void) = NULL;
 
-void (*pinChangeInterrupt0ISR)(void) = NULL;
-void (*pinChangeInterrupt1ISR)(void) = NULL;
-void (*pinChangeInterrupt2ISR)(void) = NULL;
-
 bool doesPinChangeEqualInterruptMode(InterruptMode mode, uint8_t value, uint8_t pinValue);
 
 unsigned long lastDebounceTimeExternalInterrupt0 = 0;
 unsigned long lastDebounceTimeExternalInterrupt1 = 0;
 
-unsigned long lastDebounceTimePinChangeInterrupt0 = 0;
-unsigned long lastDebounceTimePinChangeInterrupt1 = 0;
-unsigned long lastDebounceTimePinChangeInterrupt2 = 0;
+PinChangeInterruptConfig unsetPinChangeInterruptConfig; // cannot set a struct to NULL
 
-uint8_t lastPinChangeInterruptPinValue = 1; // Pull-up -> is HIGH per default
+PinChangeInterruptConfig registerB_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
+PinChangeInterruptConfig registerC_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
+PinChangeInterruptConfig registerD_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
 
 
 
@@ -53,31 +49,35 @@ void fireExternalInterruptISRIfNoDebounce(void (*isrFunction)(void), unsigned lo
 
 
 ISR(PCINT0_vect) {
-    firePinChangeISRIfNoDebounce(pinChangeInterrupt0ISR, &lastDebounceTimePinChangeInterrupt0, &PINB, PCINT0, Falling); // TODO: make generic, no hard coded values
+    if(&registerB_PinChangInterruptConfig != &unsetPinChangeInterruptConfig) {
+        firePinChangeISRIfNoDebounce(&REGISTER_B_PIN_REGISTER, registerB_PinChangInterruptConfig);
+    }
 }
 
 ISR(PCINT1_vect) {
-    firePinChangeISRIfNoDebounce(pinChangeInterrupt1ISR, &lastDebounceTimePinChangeInterrupt1, &PIN_CHANGE_INTERRUPT_PIN_REGISTER, PIN_CHANGE_INTERRUPT_PIN, Falling); // TODO: make generic, no hard coded values
+    if(&registerC_PinChangInterruptConfig != &unsetPinChangeInterruptConfig) {
+        firePinChangeISRIfNoDebounce(&REGISTER_C_PIN_REGISTER, registerC_PinChangInterruptConfig);
+    }
 }
 
 ISR(PCINT2_vect) {
-    firePinChangeISRIfNoDebounce(pinChangeInterrupt2ISR, &lastDebounceTimePinChangeInterrupt2, &PIND, PCINT16, Falling); // TODO: make generic, no hard coded values
+    if(&registerD_PinChangInterruptConfig != &unsetPinChangeInterruptConfig) {
+        firePinChangeISRIfNoDebounce(&REGISTER_D_PIN_REGISTER, registerD_PinChangInterruptConfig);
+    }
 }
 
 
-void firePinChangeISRIfNoDebounce(void (*isrFunction)(void), unsigned long* lastDebounceTime, volatile uint8_t* pinRegister, uint8_t pin, InterruptMode mode) {
-    if(isrFunction != NULL) {
-        if (hasTimeElapsed(lastDebounceTime, DebounceDelay)) {
-            uint8_t currentPinValue = *pinRegister & (1 << pin);
+void firePinChangeISRIfNoDebounce(volatile uint8_t* pinRegister, PinChangeInterruptConfig config) {
+    if (hasTimeElapsed(&config.lastDebounceTime, DebounceDelay)) {
+        uint8_t currentPinValue = *pinRegister & (1 << config.pin);
 
-            if (currentPinValue != lastPinChangeInterruptPinValue) {
-                if (doesPinChangeEqualInterruptMode(mode, currentPinValue, lastPinChangeInterruptPinValue)) {
-                    isrFunction();
-                }
-
-                lastPinChangeInterruptPinValue = currentPinValue;
+        if (doesPinChangeEqualInterruptMode(config.mode, currentPinValue, config.lastPinValue)) {
+            if(config.isrFunction != NULL) {
+                config.isrFunction();
             }
         }
+
+        config.lastPinValue = currentPinValue;
     }
 }
 
@@ -111,10 +111,12 @@ void enableExternalInterrupt(ExternalInterrupt interrupt, InterruptMode mode, vo
     if(interrupt == Zero) {
         externalInterrupt0ISR = isrFunction;
         EIMSK |= 1 << INT0; // enable External Interrupt 0
+        setPinToLow(&EXTERNAL_INTERRUPT_DDR_REGISTER, EXTERNAL_INTERRUPT_0_DDR_PIN); // set INT0 as Input
     }
     else {
         externalInterrupt1ISR = isrFunction;
         EIMSK |= 1 << INT1; // enable External Interrupt 1
+        setPinToLow(&EXTERNAL_INTERRUPT_DDR_REGISTER, EXTERNAL_INTERRUPT_1_DDR_PIN); // set INT1 as Input
     }
 
     setExternalInterruptMode(interrupt, mode);
@@ -165,9 +167,40 @@ void disableExternalInterrupt(ExternalInterrupt interrupt) {
 }
 
 
-void enablePinChangeInterruptOnRegisterC(uint8_t interruptPin, void (*isrFunction)(void)) {
+void enablePinChangeInterruptOnRegisterB(uint8_t interruptPin, InterruptMode mode, void (*isrFunction)(void)) {
+    enablePinChangeInterrupt(PCIE0, &PCMSK0, interruptPin, isrFunction);
+
+    registerB_PinChangInterruptConfig = {
+            interruptPin,
+            mode,
+            isrFunction,
+            1, // Pull-up -> is HIGH per default
+            0
+    };
+}
+
+void enablePinChangeInterruptOnRegisterC(uint8_t interruptPin, InterruptMode mode, void (*isrFunction)(void)) {
     enablePinChangeInterrupt(PCIE1, &PCMSK1, interruptPin, isrFunction);
-    pinChangeInterrupt1ISR = isrFunction;
+
+    registerC_PinChangInterruptConfig = {
+            interruptPin,
+            mode,
+            isrFunction,
+            1, // Pull-up -> is HIGH per default
+            0
+    };
+}
+
+void enablePinChangeInterruptOnRegisterD(uint8_t interruptPin, InterruptMode mode, void (*isrFunction)(void)) {
+    enablePinChangeInterrupt(PCIE2, &PCMSK2, interruptPin, isrFunction);
+
+    registerD_PinChangInterruptConfig = {
+            interruptPin,
+            mode,
+            isrFunction,
+            1, // Pull-up -> is HIGH per default
+            0
+    };
 }
 
 void enablePinChangeInterrupt(uint8_t pcie, volatile uint8_t* pinChangeMaskRegister, uint8_t interruptPin, void (*isrFunction)(void)) {

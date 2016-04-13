@@ -58,12 +58,12 @@ void initInterrupts() {
     enableExternalInterrupt0(Falling, externalInterrupt0Triggered);
     enableExternalInterrupt1(Falling, externalInterrupt1Triggered);
 
-    enablePinChangeInterruptOnRegisterC(PIN_CHANGE_INTERRUPT_PIN, pinChangeInterruptTriggered);
+    enablePinChangeInterruptOnRegisterC(PIN_CHANGE_INTERRUPT_PIN, Falling, pinChangeInterruptTriggered);
 
     // turn internal Pull-ups on
     setPinToHigh(&EXTERNAL_INTERRUPT_PORT_REGISTER, EXTERNAL_INTERRUPT_0_PORT_PIN);
     setPinToHigh(&EXTERNAL_INTERRUPT_PORT_REGISTER, EXTERNAL_INTERRUPT_1_PORT_PIN);
-    setPinToHigh(&PIN_CHANGE_INTERRUPT_PORT_REGISTER, PIN_CHANGE_INTERRUPT_1_PORT_PIN);
+    setPinToHigh(&REGISTER_C_PORT_REGISTER, PIN_CHANGE_INTERRUPT_1_PORT_PIN);
 }
 
 void doSetup() {
