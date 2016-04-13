@@ -6,6 +6,7 @@
 #define FAILUREMEMORY_H
 
 #include <USBAPI.h>
+#include "7SegmentControl.h"
 
 
 #define FailureMemoryLength 5
@@ -26,6 +27,7 @@ void pushFailureCodeOntoFailureMemory(FailureCode failureCode);
 void displayFailureMemory();
 // private function
 void printFailure(FailureCode failureCode);
+void printFailureOn7SegmentDisplay(FailureCode failureCode);
 
 
 #endif //FAILUREMEMORY_H

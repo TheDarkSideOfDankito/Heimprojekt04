@@ -16,6 +16,8 @@ void initFailureMemory() {
     for(uint8_t i; i < FailureMemoryLength; i++) {
         failureMemory[i] = NoFailure; // initialize failureMemory Array with default values (saying no failure has occurred)
     }
+
+    setup7Segment();
 }
 
 
@@ -45,6 +47,10 @@ void displayFailureMemory() {
     for(int i = 0; i < countStoredFailures; i++) {
         printFailure(failureMemory[i]);
     }
+
+    if(lastFailureCode != NoFailure) {
+        printFailureOn7SegmentDisplay(lastFailureCode);
+    }
 }
 
 void printFailure(FailureCode failureCode) {
@@ -56,6 +62,18 @@ void printFailure(FailureCode failureCode) {
     }
     else if(failureCode == C) {
         Serial.println("C");
+    }
+}
+
+void printFailureOn7SegmentDisplay(FailureCode failureCode) {
+    if(failureCode == A) {
+        showA();
+    }
+    else if(failureCode == B) {
+        showB();
+    }
+    else if(failureCode == C) {
+        showC();
     }
 }
 
