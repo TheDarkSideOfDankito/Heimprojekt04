@@ -3,41 +3,40 @@
 //
 
 #include "FailureMemory.h"
-#include "Arduino.h"
 
 
-ErrorCode failureMemory[FailureMemoryLength];
+FailureCode failureMemory[FailureMemoryLength];
 
-ErrorCode lastErrorCode = NoError;
+FailureCode lastFailureCode = NoFailure;
 
 uint8_t countFailures = 0;
 
 
 void initFailureMemory() {
     for(uint8_t i; i < FailureMemoryLength; i++) {
-        failureMemory[i] = NoError;
+        failureMemory[i] = NoFailure; // initialize failureMemory Array with default values (saying no failure has occurred)
     }
 }
 
 
-void pushErrorCodeOntoFailureMemory(ErrorCode errorCode) {
-    if(errorCode == lastErrorCode) { // do not push the same error code on failure memory two times in a row
+void pushFailureCodeOntoFailureMemory(FailureCode failureCode) {
+    if(failureCode == lastFailureCode) { // do not push the same failure code on failure memory two times in a row
         return;
     }
 
-    lastErrorCode = errorCode;
+    lastFailureCode = failureCode;
 
     for(uint8_t i = FailureMemoryLength - 1; i > 0; i--){
         failureMemory[i] = failureMemory[i - 1];
     }
 
-    failureMemory[0] = errorCode;
+    failureMemory[0] = failureCode;
 
     countFailures++;
 }
 
 
-void printFailureMemory() {
+void displayFailureMemory() {
     Serial.print("Failure Memory contains ");
     Serial.print(countFailures);
     Serial.println(" failure(s):");
@@ -48,14 +47,14 @@ void printFailureMemory() {
     }
 }
 
-void printFailure(ErrorCode errorCode) {
-    if(errorCode == A) {
+void printFailure(FailureCode failureCode) {
+    if(failureCode == A) {
         Serial.println("A");
     }
-    else if(errorCode == B) {
+    else if(failureCode == B) {
         Serial.println("B");
     }
-    else if(errorCode == C) {
+    else if(failureCode == C) {
         Serial.println("C");
     }
 }

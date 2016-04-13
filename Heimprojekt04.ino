@@ -10,9 +10,9 @@
 #include "Arduino.h"
 #include "interrupts.h"
 #include "FailureMemory.h"
-#include "util.h"
 #include "pinMappings.h"
 #include "pinControl.h"
+#include "util.h"
 
 
 #define OutputPeriodMillis 1000
@@ -36,15 +36,15 @@ int main() {
 
 
 void externalInterrupt0Triggered() {
-    pushErrorCodeOntoFailureMemory(A);
+    pushFailureCodeOntoFailureMemory(A);
 }
 
 void externalInterrupt1Triggered() {
-    pushErrorCodeOntoFailureMemory(B);
+    pushFailureCodeOntoFailureMemory(B);
 }
 
 void pinChangeInterruptTriggered() {
-    pushErrorCodeOntoFailureMemory(C);
+    pushFailureCodeOntoFailureMemory(C);
 }
 
 
@@ -76,6 +76,6 @@ void doSetup() {
 
 void doLoop() {
     if(hasTimeElapsed(&lastOutputTime, OutputPeriodMillis)) {
-        printFailureMemory();
+        displayFailureMemory();
     }
 }

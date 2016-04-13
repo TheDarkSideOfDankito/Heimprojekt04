@@ -2,7 +2,7 @@
 // Actually i wanted to make this 'class' as generically as possible, but being able to set each possible Pin
 // for a Pin Change Interrupt would require storing 23 Configs, one for each Pin.
 // This would use up a lot of ATMega's SDRAM, which i'd like to avoid.
-// So currently it's only possible to configure one Pin of Register B, C and D each for Pin Change Interrupt.
+// So currently it's only possible to configure one Pin of Register B, C and D each for a Pin Change Interrupt.
 //
 
 #include "interrupts.h"
@@ -13,21 +13,25 @@
 
 uint8_t countEnabledInterrupts = 0;
 
+// config for External Interrupts
+
 void (*externalInterrupt0ISR)(void) = NULL;
 void (*externalInterrupt1ISR)(void) = NULL;
-
-bool doesPinChangeEqualInterruptMode(InterruptMode mode, uint8_t value, uint8_t pinValue);
 
 unsigned long lastDebounceTimeExternalInterrupt0 = 0;
 unsigned long lastDebounceTimeExternalInterrupt1 = 0;
 
+// config for Pin Change Interrupts
+
 PinChangeInterruptConfig unsetPinChangeInterruptConfig; // cannot set a struct to NULL
 
+// per Register only one Pin can be configured for Pin Change Interrupt
 PinChangeInterruptConfig registerB_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
 PinChangeInterruptConfig registerC_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
 PinChangeInterruptConfig registerD_PinChangInterruptConfig = unsetPinChangeInterruptConfig;
 
 
+// External Interrupt ISRs
 
 ISR(INT0_vect) {
     fireExternalInterruptISRIfNoDebounce(externalInterrupt0ISR, &lastDebounceTimeExternalInterrupt0);
@@ -47,6 +51,8 @@ void fireExternalInterruptISRIfNoDebounce(void (*isrFunction)(void), unsigned lo
     }
 }
 
+
+// Pin Change Interrupt ISRs
 
 ISR(PCINT0_vect) {
     if(&registerB_PinChangInterruptConfig != &unsetPinChangeInterruptConfig) {
@@ -98,6 +104,8 @@ bool doesPinChangeEqualInterruptMode(InterruptMode mode, uint8_t currentPinValue
     return false;
 }
 
+
+// Configure External Interrupts
 
 void enableExternalInterrupt0(InterruptMode mode, void (*isrFunction)(void)) {
     enableExternalInterrupt(Zero, mode, isrFunction);
@@ -167,6 +175,8 @@ void disableExternalInterrupt(ExternalInterrupt interrupt) {
 }
 
 
+// Configure Pin Change Interrupts
+
 void enablePinChangeInterruptOnRegisterB(uint8_t interruptPin, InterruptMode mode, void (*isrFunction)(void)) {
     enablePinChangeInterrupt(PCIE0, &PCMSK0, interruptPin, isrFunction);
 
@@ -211,6 +221,8 @@ void enablePinChangeInterrupt(uint8_t pcie, volatile uint8_t* pinChangeMaskRegis
 
     countEnabledInterrupts++;
 }
+
+// TODO: implement a disable() function for each Register which knows correct PCIE and PCMSK Registers and unsets its Config struct
 
 void disablePinChangeInterrupt(uint8_t pcie, volatile uint8_t* pinChangeMaskRegister, uint8_t interruptPin) {
     *pinChangeMaskRegister &= ~(1 << interruptPin);

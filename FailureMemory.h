@@ -12,20 +12,20 @@
 
 
 typedef enum ErrorCode {
-    NoError,
+    NoFailure,
     A,
     B,
     C
-} ErrorCode;
+} FailureCode;
 
 
 void initFailureMemory();
 
-void pushErrorCodeOntoFailureMemory(ErrorCode errorCode);
+void pushFailureCodeOntoFailureMemory(FailureCode failureCode);
 
-void printFailureMemory();
+void displayFailureMemory();
 // private function
-void printFailure(ErrorCode errorCode);
+void printFailure(FailureCode failureCode);
 
 
 #endif //FAILUREMEMORY_H

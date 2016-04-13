@@ -8,14 +8,16 @@
 
 #include <avr/interrupt.h>
 #include <Arduino.h>
-#include "util.h"
 #include "pinMappings.h"
 #include "pinControl.h"
+#include "util.h"
 
 
 #define globallyEnableInterrupts() sei()
 #define globallyDisableInterrupts() cli()
 
+
+// TODO: Create own .h files for these structs
 
 typedef enum InterruptMode {
     LowLevel,
@@ -63,6 +65,8 @@ void enablePinChangeInterrupt(uint8_t pcie, volatile uint8_t* pinChangeMaskRegis
 // private functions
 void fireExternalInterruptISRIfNoDebounce(void (*isrFunction)(void), unsigned long *lastDebounceTime);
 void firePinChangeISRIfNoDebounce(volatile uint8_t* pinRegister, PinChangeInterruptConfig config);
+
+bool doesPinChangeEqualInterruptMode(InterruptMode mode, uint8_t value, uint8_t pinValue);
 
 void decreaseCountEnabledInterrupts();
 
